@@ -25,3 +25,21 @@ export async function createUser(req, res) {
         res.status(500).json({ error: 'Failed to create user' });
     }
 }
+
+export async function getUserById(req, res) {
+    const { id } = req.params;
+
+    try {
+        const user = await prisma.user.findUnique({
+            where: { id: parseInt(id) }
+        });
+
+        if (user) {
+            res.status(200).json(user);
+        } else {
+            res.status(404).json({ error: 'User not found' });
+        }
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch user' });
+    }
+}
