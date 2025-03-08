@@ -1,8 +1,13 @@
 export function errorHandler(err, req, res, next) {
     console.error(err);
 
-    let statusCode = err.statusCode || 500;
-    let message = err.message || "Something went wrong";
+    if (err.code === 'P2002') {
+        return res.status(400).json({ error: 'Duplicate field value' });
+    }
 
-    res.status(statusCode).json({error: message});
+    if (err.code === 'P2025') {
+        return res.status(404).json({ error: 'Resource not found' });
+    }
+
+    res.status(500).json({ error: 'Internal Server Error' });
 }
