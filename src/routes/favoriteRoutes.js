@@ -3,9 +3,9 @@ import {getAllFavoriteContacts, addFavoriteContact, getFavoriteContactById, remo
 
 const router = express.Router();
 
-router.get('/:userId/favorites', getAllFavoriteContacts);
-router.post('/favorites', addFavoriteContact);
-router.get('/favorites/:id', getFavoriteContactById);
-router.delete('/favorites/:id', removeFavoriteContact);
+router.get('/:userId', getAllFavoriteContacts);
+router.post('/', addFavoriteContact);
+router.get('/:id', getFavoriteContactById);
+router.delete('/:id', removeFavoriteContact);
 
 export default router;
