@@ -12,9 +12,9 @@ datasource db {
 
 model User {
   id        Int               @id @default(autoincrement())
-  nome      String
+  name      String
   email     String            @unique
-  senha     String
+  password  String
   createdAt DateTime          @default(now())
   updatedAt DateTime          @updatedAt
   contacts  Contact[]         @relation("UserContacts")
@@ -23,9 +23,9 @@ model User {
 
 model Contact {
   id               Int               @id @default(autoincrement())
-  nome             String
+  name             String
   email            String            @unique
-  telefone         String
+  phone            String
   userId           Int
   user             User              @relation("UserContacts", fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   favoriteContacts FavoriteContact[]
