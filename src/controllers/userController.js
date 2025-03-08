@@ -62,3 +62,16 @@ export async function updateUser(req, res) {
         res.status(500).json({ error: 'Failed to update user' });
     }
 }
+
+export async function deleteUser(req, res) {
+    const { id } = req.params;
+
+    try {
+        const deletedUser = await prisma.user.delete({
+            where: { id: parseInt(id) }
+        });
+        res.status(200).json(deletedUser);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to delete user' });
+    }
+}
