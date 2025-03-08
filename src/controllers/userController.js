@@ -43,3 +43,22 @@ export async function getUserById(req, res) {
         res.status(500).json({ error: 'Failed to fetch user' });
     }
 }
+
+export async function updateUser(req, res) {
+    const { id } = req.params;
+    const { name, email, password } = req.body;
+
+    try {
+        const updatedUser = await prisma.user.update({
+            where: { id: parseInt(id) },
+            data: {
+                name,
+                email,
+                password,
+            }
+        });
+        res.status(200).json(updatedUser);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to update user' });
+    }
+}
