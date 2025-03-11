@@ -6,9 +6,10 @@ import { asyncHandler } from '../utils/middlewares/asyncHandler.js';
 
 const prisma = new PrismaClient();
 
-const generateToken = (userId) => {
-    return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '1d' });
+const generateToken = (id) => {
+    return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '1d' });
 };
+
 
 export const signup = asyncHandler(async (req, res) => {
     const { name, email, password } = req.body;
@@ -46,4 +47,31 @@ export const login = asyncHandler(async (req, res) => {
     const token = generateToken(user.id);
 
     res.status(200).json({ token, user: { id: user.id, email, name: user.name } });
+});
+
+export const updatePassword = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const { currentPassword, newPassword } = req.body;
+
+    const user = await prisma.user.findUnique({
+        where: { id: parseInt(id) }
+    });
+
+    if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+    }
+
+    const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    if (!isPasswordValid) {
+        return res.status(401).json({ error: 'Current password is incorrect' });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await prisma.user.update({
+        where: { id: parseInt(id) },
+        data: { password: hashedPassword }
+    });
+
+    res.status(200).json({ message: 'Password updated successfully' });
 });
