@@ -40,7 +40,7 @@ export const getUserById = asyncHandler(async (req, res) => {
 
 export const updateUser = asyncHandler(async (req, res) => {
     const { id } = req.params;
-    const { name, email, password } = req.body;
+    const { name, email } = req.body;
 
     const user = await prisma.user.findUnique({
         where: { id: parseInt(id) }
@@ -52,10 +52,11 @@ export const updateUser = asyncHandler(async (req, res) => {
 
     const updatedUser = await prisma.user.update({
         where: { id: parseInt(id) },
-        data: { name, email, password }
+        data: { name, email }
     });
 
-    res.status(200).json(updatedUser);
+    const { password, ...userWithoutPassword } = updatedUser;
+    res.status(200).json(userWithoutPassword);
 });
 
 export const deleteUser = asyncHandler(async (req, res) => {
