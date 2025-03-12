@@ -115,3 +115,21 @@ export const deleteContact = asyncHandler(async (req, res) => {
 
     res.status(204).send();
 });
+
+export const deleteAllContactsByUserId = asyncHandler(async (req, res) => {
+    const deletedContacts = await prisma.contact.deleteMany({
+        where: { userId: req.params.userId },
+    });
+
+    if (deletedContacts.count === 0) {
+        return res.status(404).json({
+            status: 'error',
+            message: 'No contacts found for this user',
+        });
+    }
+
+    res.status(200).json({
+        status: 'success',
+        message: `Successfully deleted ${deletedContacts.count} contacts.`,
+    });
+});
