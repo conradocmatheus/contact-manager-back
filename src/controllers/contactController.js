@@ -6,6 +6,15 @@ export const getAllContacts = asyncHandler(async (req, res) => {
     res.status(200).json(contacts);
 });
 
+export const getAllContactsByUserId = asyncHandler(async (req, res) => {
+    const contacts = await prisma.contact.findMany({
+        where: {
+            id: req.params.id,
+        }
+    });
+    res.status(200).json(contacts);
+})
+
 export const createContact = asyncHandler(async (req, res) => {
     const { name, email, phone, userId } = req.body;
 
