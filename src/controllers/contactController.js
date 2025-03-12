@@ -9,7 +9,7 @@ export const getAllContacts = asyncHandler(async (req, res) => {
 export const getAllContactsByUserId = asyncHandler(async (req, res) => {
     const contacts = await prisma.contact.findMany({
         where: {
-            id: req.params.id,
+            userId: req.params.userId,
         }
     });
     res.status(200).json(contacts);
