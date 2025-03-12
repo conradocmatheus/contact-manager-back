@@ -5,7 +5,7 @@ import {authMiddleware} from "../utils/middlewares/authMiddleware.js";
 const router = new Router();
 
 router.get('/', authMiddleware, getAllUsers);
-router.post('/', authMiddleware, createUser);
+router.post('/', createUser);
 router.get('/:id', authMiddleware, getUserById);
 router.put('/:id', authMiddleware, updateUser);
 router.delete('/:id', authMiddleware, deleteUser);
