@@ -7,13 +7,37 @@ export const getAllContacts = asyncHandler(async (req, res) => {
 });
 
 export const getAllContactsByUserId = asyncHandler(async (req, res) => {
-    const contacts = await prisma.contact.findMany({
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const total = await prisma.contact.count({
         where: {
             userId: req.params.userId,
         }
     });
-    res.status(200).json(contacts);
-})
+
+    const contacts = await prisma.contact.findMany({
+        where: {
+            userId: req.params.userId,
+        },
+        skip: skip,
+        take: limit,
+        orderBy: {
+            name: 'asc'
+        }
+    });
+
+    res.status(200).json({
+        contacts,
+        pagination: {
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit)
+        }
+    });
+});
 
 export const createContact = asyncHandler(async (req, res) => {
     const { name, email, phone, userId } = req.body;
