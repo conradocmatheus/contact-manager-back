@@ -7,13 +7,14 @@ export const getAllContacts = asyncHandler(async (req, res) => {
 });
 
 export const getAllContactsByUserId = asyncHandler(async (req, res) => {
+    const userId = req.user.id;
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
     const searchTerm = req.query.search || '';
 
     const whereCondition = {
-        userId: req.params.userId,
+        userId: userId,
         ...(searchTerm ? {
             OR: [
                 { name: { contains: searchTerm.toLowerCase() } },
@@ -47,7 +48,8 @@ export const getAllContactsByUserId = asyncHandler(async (req, res) => {
 });
 
 export const createContact = asyncHandler(async (req, res) => {
-    const { name, email, phone, userId } = req.body;
+    const { name, email, phone } = req.body;
+    const userId = req.user.id;
 
     const contact = await prisma.contact.create({
         data: { name, email, phone, userId }
@@ -55,6 +57,7 @@ export const createContact = asyncHandler(async (req, res) => {
 
     res.status(201).json(contact);
 });
+
 
 
 export const getContactById = asyncHandler(async (req, res) => {
