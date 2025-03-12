@@ -10,17 +10,24 @@ export const getAllContactsByUserId = asyncHandler(async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
+    const searchTerm = req.query.search || '';
+
+    const whereCondition = {
+        userId: req.params.userId,
+        ...(searchTerm ? {
+            OR: [
+                { name: { contains: searchTerm.toLowerCase() } },
+                { email: { contains: searchTerm.toLowerCase() } }
+            ]
+        } : {})
+    };
 
     const total = await prisma.contact.count({
-        where: {
-            userId: req.params.userId,
-        }
+        where: whereCondition
     });
 
     const contacts = await prisma.contact.findMany({
-        where: {
-            userId: req.params.userId,
-        },
+        where: whereCondition,
         skip: skip,
         take: limit,
         orderBy: {
