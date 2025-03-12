@@ -16,7 +16,7 @@ export const signup = asyncHandler(async (req, res) => {
 
     const userExists = await prisma.user.findUnique({ where: { email } });
     if (userExists) {
-        return res.status(400).json({ message: 'Usuário já existe' });
+        return res.status(400).json({ message: 'User already exists' });
     }
 
     const saltRounds = Number(process.env.BCRYPT_SALT_ROUNDS) || 10;
@@ -36,12 +36,12 @@ export const login = asyncHandler(async (req, res) => {
 
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
-        return res.status(400).json({ message: 'Credenciais inválidas' });
+        return res.status(400).json({ message: 'Invalid email or password' });
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-        return res.status(400).json({ message: 'Credenciais inválidas' });
+        return res.status(400).json({ message: 'Invalid Credentials' });
     }
 
     const token = generateToken(user.id);
