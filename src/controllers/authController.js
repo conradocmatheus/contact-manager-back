@@ -1,10 +1,8 @@
-import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { PrismaClient } from '@prisma/client';
 import 'dotenv/config';
+import prisma from '../../prisma/prismaClient.js';
 import { asyncHandler } from '../utils/middlewares/asyncHandler.js';
-
-const prisma = new PrismaClient();
+import { comparePassword, hashPassword } from '../utils/password.js';
 
 const generateToken = (id) => {
     return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '1d' });
@@ -19,8 +17,7 @@ export const signup = asyncHandler(async (req, res) => {
         return res.status(400).json({ message: 'User already exists' });
     }
 
-    const saltRounds = Number(process.env.BCRYPT_SALT_ROUNDS) || 10;
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
+    const hashedPassword = await hashPassword(password);
 
     const user = await prisma.user.create({
         data: { email, password: hashedPassword, name },
@@ -39,7 +36,7 @@ export const login = asyncHandler(async (req, res) => {
         return res.status(400).json({ message: 'Invalid email or password' });
     }
 
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    const isPasswordValid = await comparePassword(password, user.password);
     if (!isPasswordValid) {
         return res.status(400).json({ message: 'Invalid Credentials' });
     }
@@ -50,26 +47,25 @@ export const login = asyncHandler(async (req, res) => {
 });
 
 export const updatePassword = asyncHandler(async (req, res) => {
-    const { id } = req.params;
     const { currentPassword, newPassword } = req.body;
 
     const user = await prisma.user.findUnique({
-        where: { id: parseInt(id) }
+        where: { id: req.user.id }
     });
 
     if (!user) {
         return res.status(404).json({ error: 'User not found' });
     }
 
-    const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    const isPasswordValid = await comparePassword(currentPassword, user.password);
     if (!isPasswordValid) {
         return res.status(401).json({ error: 'Current password is incorrect' });
     }
 
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    const hashedPassword = await hashPassword(newPassword);
 
     await prisma.user.update({
-        where: { id: parseInt(id) },
+        where: { id: req.user.id },
         data: { password: hashedPassword }
     });
 

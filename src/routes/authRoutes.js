@@ -8,6 +8,6 @@ router.post('/signup', signup);
 
 router.post('/login', login);
 
-router.put('/password/:id', authMiddleware, updatePassword);
+router.put('/password', authMiddleware, updatePassword);
 
 export default router;
