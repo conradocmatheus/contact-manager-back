@@ -113,8 +113,10 @@ export const deleteContact = asyncHandler(async (req, res) => {
 });
 
 export const deleteAllContactsByUserId = asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+
     const deletedContacts = await prisma.contact.deleteMany({
-        where: { userId: req.params.userId },
+        where: { userId },
     });
 
     if (deletedContacts.count === 0) {
