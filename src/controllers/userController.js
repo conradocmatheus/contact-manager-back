@@ -10,11 +10,6 @@ const publicUserSelect = {
     updatedAt: true
 };
 
-export const getAllUsers = asyncHandler(async (req, res) => {
-    const users = await prisma.user.findMany({ select: publicUserSelect });
-    res.status(200).json(users);
-});
-
 export const createUser = asyncHandler(async (req, res) => {
     const { name, email, password } = req.body;
 
@@ -36,11 +31,9 @@ export const createUser = asyncHandler(async (req, res) => {
     res.status(201).json(user);
 });
 
-export const getUserById = asyncHandler(async (req, res) => {
-    const { id } = req.params;
-
+export const getCurrentUser = asyncHandler(async (req, res) => {
     const user = await prisma.user.findUnique({
-        where: { id: parseInt(id) },
+        where: { id: req.user.id },
         select: publicUserSelect
     });
 
@@ -51,12 +44,11 @@ export const getUserById = asyncHandler(async (req, res) => {
     res.status(200).json(user);
 });
 
-export const updateUser = asyncHandler(async (req, res) => {
-    const { id } = req.params;
+export const updateCurrentUser = asyncHandler(async (req, res) => {
     const { name, email } = req.body;
 
     const user = await prisma.user.findUnique({
-        where: { id: parseInt(id) }
+        where: { id: req.user.id }
     });
 
     if (!user) {
@@ -64,7 +56,7 @@ export const updateUser = asyncHandler(async (req, res) => {
     }
 
     const updatedUser = await prisma.user.update({
-        where: { id: parseInt(id) },
+        where: { id: req.user.id },
         data: { name, email },
         select: publicUserSelect
     });
@@ -72,11 +64,9 @@ export const updateUser = asyncHandler(async (req, res) => {
     res.status(200).json(updatedUser);
 });
 
-export const deleteUser = asyncHandler(async (req, res) => {
-    const { id } = req.params;
-
+export const deleteCurrentUser = asyncHandler(async (req, res) => {
     const user = await prisma.user.findUnique({
-        where: { id: parseInt(id) }
+        where: { id: req.user.id }
     });
 
     if (!user) {
@@ -84,7 +74,7 @@ export const deleteUser = asyncHandler(async (req, res) => {
     }
 
     await prisma.user.delete({
-        where: { id: parseInt(id) }
+        where: { id: req.user.id }
     });
 
     res.status(204).send();

@@ -4,9 +4,9 @@ import bcrypt from 'bcryptjs';
 import prisma from '../prisma/prismaClient.js';
 import {
     createUser,
-    getAllUsers,
-    getUserById,
-    updateUser
+    deleteCurrentUser,
+    getCurrentUser,
+    updateCurrentUser
 } from '../src/controllers/userController.js';
 import { signup, updatePassword } from '../src/controllers/authController.js';
 
@@ -60,26 +60,17 @@ const assertPublicSelect = (select) => {
     assert.equal(Object.hasOwn(select, 'password'), false);
 };
 
-test('user list selects and returns only public fields', { concurrency: false }, async (t) => {
-    mockUserMethod(t, 'findMany', async ({ select }) => {
-        assertPublicSelect(select);
-        return [PUBLIC_USER];
-    });
-
-    const response = await invoke(getAllUsers);
-
-    assert.equal(response.statusCode, 200);
-    assert.equal(Object.hasOwn(response.body[0], 'password'), false);
-});
-
 test('user lookup selects and returns only public fields', { concurrency: false }, async (t) => {
     mockUserMethod(t, 'findUnique', async ({ where, select }) => {
-        assert.deepEqual(where, { id: 1 });
+        assert.deepEqual(where, { id: 7 });
         assertPublicSelect(select);
         return PUBLIC_USER;
     });
 
-    const response = await invoke(getUserById, { params: { id: '1' } });
+    const response = await invoke(getCurrentUser, {
+        user: { id: 7 },
+        params: { id: '999' }
+    });
 
     assert.equal(response.statusCode, 200);
     assert.equal(Object.hasOwn(response.body, 'password'), false);
@@ -105,20 +96,43 @@ test('direct user creation hashes the password and never returns it', { concurre
 });
 
 test('profile update selects and returns only public fields', { concurrency: false }, async (t) => {
-    mockUserMethod(t, 'findUnique', async () => ({ ...PUBLIC_USER, password: 'stored-hash' }));
-    mockUserMethod(t, 'update', async ({ data, select }) => {
+    mockUserMethod(t, 'findUnique', async ({ where }) => {
+        assert.deepEqual(where, { id: 7 });
+        return { ...PUBLIC_USER, password: 'stored-hash' };
+    });
+    mockUserMethod(t, 'update', async ({ where, data, select }) => {
+        assert.deepEqual(where, { id: 7 });
         assert.deepEqual(data, { name: 'New Name', email: 'new@example.com' });
         assertPublicSelect(select);
         return { ...PUBLIC_USER, ...data };
     });
 
-    const response = await invoke(updateUser, {
-        params: { id: '1' },
+    const response = await invoke(updateCurrentUser, {
+        user: { id: 7 },
+        params: { id: '999' },
         body: { name: 'New Name', email: 'new@example.com', password: 'ignored' }
     });
 
     assert.equal(response.statusCode, 200);
     assert.equal(Object.hasOwn(response.body, 'password'), false);
+});
+
+test('account deletion only targets the authenticated user', { concurrency: false }, async (t) => {
+    mockUserMethod(t, 'findUnique', async ({ where }) => {
+        assert.deepEqual(where, { id: 7 });
+        return PUBLIC_USER;
+    });
+    mockUserMethod(t, 'delete', async ({ where }) => {
+        assert.deepEqual(where, { id: 7 });
+        return PUBLIC_USER;
+    });
+
+    const response = await invoke(deleteCurrentUser, {
+        user: { id: 7 },
+        params: { id: '999' }
+    });
+
+    assert.equal(response.statusCode, 204);
 });
 
 test('signup stores a bcrypt hash and returns a public user', { concurrency: false }, async (t) => {
@@ -144,15 +158,20 @@ test('password update verifies and stores bcrypt hashes', { concurrency: false }
     const newPassword = 'new-password';
     const currentHash = await bcrypt.hash(currentPassword, 4);
 
-    mockUserMethod(t, 'findUnique', async () => ({ ...PUBLIC_USER, password: currentHash }));
-    mockUserMethod(t, 'update', async ({ data }) => {
+    mockUserMethod(t, 'findUnique', async ({ where }) => {
+        assert.deepEqual(where, { id: 7 });
+        return { ...PUBLIC_USER, password: currentHash };
+    });
+    mockUserMethod(t, 'update', async ({ where, data }) => {
+        assert.deepEqual(where, { id: 7 });
         assert.notEqual(data.password, newPassword);
         assert.equal(await bcrypt.compare(newPassword, data.password), true);
         return PUBLIC_USER;
     });
 
     const response = await invoke(updatePassword, {
-        params: { id: '1' },
+        user: { id: 7 },
+        params: { id: '999' },
         body: { currentPassword, newPassword }
     });
 
