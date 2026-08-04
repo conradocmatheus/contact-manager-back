@@ -23,7 +23,9 @@ app.use(errorHandler);
 
 const port = process.env.PORT || 3000;
 
-app.get('/validate-phone', async (req, res) => {
+import { validatePhoneQuery } from './utils/middlewares/validationMiddleware.js';
+
+app.get('/validate-phone', validatePhoneQuery, async (req, res) => {
     const { number } = req.query;
 
     try {
