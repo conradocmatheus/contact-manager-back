@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import prisma from '../prisma/prismaClient.js';
 import {
     createContact,
-    deleteAllContactsByUserId,
+    deleteAllContactsByUser,
     deleteContact,
     getAllContacts,
     getAllContactsByUserId,
@@ -185,15 +185,14 @@ test('scopes the deletion itself to the authenticated user', async (t) => {
     assert.equal(res.statusCode, 204);
 });
 
-test('ignores the URL user ID when deleting all contacts', async (t) => {
+test('deletes all contacts for the authenticated user without a URL ID', async (t) => {
     mockPrismaMethod(t, 'deleteMany', async ({ where }) => {
         assert.deepEqual(where, { userId: 7 });
         return { count: 2 };
     });
 
-    const res = await invoke(deleteAllContactsByUserId, {
-        user: { id: 7 },
-        params: { id: '99' }
+    const res = await invoke(deleteAllContactsByUser, {
+        user: { id: 7 }
     });
 
     assert.equal(res.statusCode, 200);
