@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import {
-    createContact, deleteAllContactsByUserId,
+    createContact, deleteAllContactsByUser,
     deleteContact,
     getAllContacts,
     getAllContactsByUserId,
@@ -17,6 +17,6 @@ router.post('/', authMiddleware, createContact);
 router.get('/:id', authMiddleware, getContactById);
 router.put('/:id', authMiddleware, updateContact);
 router.delete('/:id', authMiddleware, deleteContact);
-router.delete('/all', authMiddleware, deleteAllContactsByUserId);
+router.delete('/all', authMiddleware, deleteAllContactsByUser);
 
 export default router;
