@@ -129,7 +129,7 @@ export const deleteContact = asyncHandler(async (req, res) => {
     res.status(204).send();
 });
 
-export const deleteAllContactsByUserId = asyncHandler(async (req, res) => {
+export const deleteAllContactsByUser = asyncHandler(async (req, res) => {
     const deletedContacts = await prisma.contact.deleteMany({
         where: { userId: req.user.id },
     });
