@@ -1,10 +1,14 @@
 import prisma from "../../prisma/prismaClient.js";
 import { asyncHandler } from "../utils/middlewares/asyncHandler.js";
+import { hashPassword } from "../utils/password.js";
 
-export const getAllUsers = asyncHandler(async (req, res) => {
-    const users = await prisma.user.findMany();
-    res.status(200).json(users);
-});
+const publicUserSelect = {
+    id: true,
+    name: true,
+    email: true,
+    createdAt: true,
+    updatedAt: true
+};
 
 export const createUser = asyncHandler(async (req, res) => {
     const { name, email, password } = req.body;
@@ -17,18 +21,20 @@ export const createUser = asyncHandler(async (req, res) => {
         return res.status(400).json({ error: 'Email already in use' });
     }
 
+    const hashedPassword = await hashPassword(password);
+
     const user = await prisma.user.create({
-        data: { name, email, password }
+        data: { name, email, password: hashedPassword },
+        select: publicUserSelect
     });
 
     res.status(201).json(user);
 });
 
-export const getUserById = asyncHandler(async (req, res) => {
-    const { id } = req.params;
-
+export const getCurrentUser = asyncHandler(async (req, res) => {
     const user = await prisma.user.findUnique({
-        where: { id: parseInt(id) }
+        where: { id: req.user.id },
+        select: publicUserSelect
     });
 
     if (!user) {
@@ -38,12 +44,11 @@ export const getUserById = asyncHandler(async (req, res) => {
     res.status(200).json(user);
 });
 
-export const updateUser = asyncHandler(async (req, res) => {
-    const { id } = req.params;
+export const updateCurrentUser = asyncHandler(async (req, res) => {
     const { name, email } = req.body;
 
     const user = await prisma.user.findUnique({
-        where: { id: parseInt(id) }
+        where: { id: req.user.id }
     });
 
     if (!user) {
@@ -51,19 +56,17 @@ export const updateUser = asyncHandler(async (req, res) => {
     }
 
     const updatedUser = await prisma.user.update({
-        where: { id: parseInt(id) },
-        data: { name, email }
+        where: { id: req.user.id },
+        data: { name, email },
+        select: publicUserSelect
     });
 
-    const { password, ...userWithoutPassword } = updatedUser;
-    res.status(200).json(userWithoutPassword);
+    res.status(200).json(updatedUser);
 });
 
-export const deleteUser = asyncHandler(async (req, res) => {
-    const { id } = req.params;
-
+export const deleteCurrentUser = asyncHandler(async (req, res) => {
     const user = await prisma.user.findUnique({
-        where: { id: parseInt(id) }
+        where: { id: req.user.id }
     });
 
     if (!user) {
@@ -71,7 +74,7 @@ export const deleteUser = asyncHandler(async (req, res) => {
     }
 
     await prisma.user.delete({
-        where: { id: parseInt(id) }
+        where: { id: req.user.id }
     });
 
     res.status(204).send();
