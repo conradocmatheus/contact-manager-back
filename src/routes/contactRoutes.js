@@ -15,6 +15,6 @@ router.post('/', authMiddleware, createContact);
 router.get('/:id', authMiddleware, getContactById);
 router.put('/:id', authMiddleware, updateContact);
 router.delete('/:id', authMiddleware, deleteContact);
-router.delete('/all/:id', authMiddleware, deleteAllContactsByUserId);
+router.delete('/all', authMiddleware, deleteAllContactsByUserId);
 
 export default router;
