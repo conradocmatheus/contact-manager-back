@@ -17,8 +17,8 @@ export const getAllContactsByUserId = asyncHandler(async (req, res) => {
         userId: userId,
         ...(searchTerm ? {
             OR: [
-                { name: { contains: searchTerm.toLowerCase() } },
-                { email: { contains: searchTerm.toLowerCase() } }
+                { name: { contains: searchTerm, mode: 'insensitive'} },
+                { email: { contains: searchTerm, mode: 'insensitive' } }
             ]
         } : {})
     };
