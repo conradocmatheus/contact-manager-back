@@ -2,6 +2,7 @@ import { Router } from 'express';
 import {
     createContact, deleteAllContactsByUserId,
     deleteContact,
+    getAllContacts,
     getAllContactsByUserId,
     getContactById,
     updateContact
@@ -10,6 +11,7 @@ import {authMiddleware} from "../utils/middlewares/authMiddleware.js";
 
 const router = new Router();
 
+router.get('/', authMiddleware, getAllContacts);
 router.get('/by-user/:id', authMiddleware, getAllContactsByUserId);
 router.post('/', authMiddleware, createContact);
 router.get('/:id', authMiddleware, getContactById);
