@@ -1,7 +1,7 @@
 # 📱 Contacts Manager API
 
 ## 📖 Sobre o Projeto
-API RESTful desenvolvida com Node.js, Express, Prisma ORM e SQL Server para gerenciamento de contatos, com validação de números de telefone através da integração com a API NumberVerify.
+API RESTful desenvolvida com Node.js, Express, Prisma ORM e PostgreSQL para gerenciamento de contatos, com validação de números de telefone através da integração com a API NumberVerify.
 
 ### OBS:
 Este repositório contém o backend do projeto. Para rodar o frontend tambem, siga a documentação disponível nesse outro repositório:
@@ -11,8 +11,8 @@ Este repositório contém o backend do projeto. Para rodar o frontend tambem, si
 ## 🛠️ Tecnologias
 - **Node.js** (v22.14.0)
 - **Express.js** - Framework web
-- **Prisma ORM** - ORM para SQL Server
-- **SQL Server** - Banco de dados
+- **Prisma ORM** - ORM para PostgreSQL
+- **PostgreSQL** - Banco de dados
 - **JWT** - Autenticação
 - **bcrypt** - Criptografia de senhas
 - **NumVerify API** - Validação de números de telefone
@@ -21,14 +21,14 @@ Este repositório contém o backend do projeto. Para rodar o frontend tambem, si
 
 ### Pré-requisitos
 - [Node.js](https://nodejs.org/) (v22.14.0 ou superior)
-- [SQL Server](https://www.microsoft.com/pt-br/sql-server/sql-server-downloads)
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/)
 - [Postman](https://www.postman.com/) (opcional, para testes de API)
 
 ### Configuração das Variáveis de Ambiente
-Crie um arquivo `.env` na raiz do projeto com as seguintes variáveis:
+Copie o arquivo `.env.example` para `.env` e ajuste as variáveis conforme o seu ambiente:
 
 ```
-DATABASE_URL="sqlserver://localhost:1433;database=contacts_manager;user=sa;password=admin;encrypt=true;TrustServerCertificate=true"
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/contacts_manager?schema=public"
 JWT_SECRET=chaveSecretaSuperSeguraInvisivelInvencivelGrande
 BCRYPT_SALT_ROUNDS=10
 
@@ -41,16 +41,40 @@ NUMVERIFY_API_URL=http://apilayer.net/api/validate
 
 ### Instalação e Execução
 
+#### Executar banco e API com Docker
+
 ```bash
+# Construir e subir PostgreSQL e API
+docker compose up --build -d
+
+# Acompanhar os logs da API
+docker compose logs -f api
+```
+
+A API estará disponível em `http://localhost:3000` e o healthcheck em `http://localhost:3000/health`. As migrations são aplicadas automaticamente antes da inicialização da API.
+
+#### Executar a API localmente
+
+```bash
+# Subir somente o PostgreSQL
+docker compose up -d postgres
+
 # Instalar dependências
 npm install
 
-# Executar migrações do banco de dados
-npx prisma migrate dev --name init
+# Gerar o Prisma Client
+npm run prisma:generate
+
+# Executar as migrações no ambiente de desenvolvimento
+npm run prisma:migrate:dev
 
 # Iniciar servidor de desenvolvimento
 npm run dev
 ```
+
+Em produção, aplique as migrations pendentes com `npm run prisma:migrate:deploy`.
+
+Para parar os containers sem apagar os dados, execute `docker compose stop`. Para acompanhar os logs do banco, use `docker compose logs -f postgres`.
 
 A API estará disponível em: `http://localhost:3000`
 

@@ -47,11 +47,10 @@ export const login = asyncHandler(async (req, res) => {
 });
 
 export const updatePassword = asyncHandler(async (req, res) => {
-    const { id } = req.params;
     const { currentPassword, newPassword } = req.body;
 
     const user = await prisma.user.findUnique({
-        where: { id: parseInt(id) }
+        where: { id: req.user.id }
     });
 
     if (!user) {
@@ -66,7 +65,7 @@ export const updatePassword = asyncHandler(async (req, res) => {
     const hashedPassword = await hashPassword(newPassword);
 
     await prisma.user.update({
-        where: { id: parseInt(id) },
+        where: { id: req.user.id },
         data: { password: hashedPassword }
     });
 
