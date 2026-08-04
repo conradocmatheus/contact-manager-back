@@ -1,11 +1,6 @@
 import prisma from "../../prisma/prismaClient.js";
 import { asyncHandler } from "../utils/middlewares/asyncHandler.js";
 
-export const getAllContacts = asyncHandler(async (req, res) => {
-    const contacts = await prisma.contact.findMany();
-    res.status(200).json(contacts);
-});
-
 export const getAllContactsByUserId = asyncHandler(async (req, res) => {
     const userId = req.user.id;
     const page = parseInt(req.query.page) || 1;

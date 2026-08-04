@@ -1,29 +1,6 @@
 import prisma from "../../prisma/prismaClient.js";
 import { asyncHandler } from "../utils/middlewares/asyncHandler.js";
 
-export const getAllUsers = asyncHandler(async (req, res) => {
-    const users = await prisma.user.findMany();
-    res.status(200).json(users);
-});
-
-export const createUser = asyncHandler(async (req, res) => {
-    const { name, email, password } = req.body;
-
-    const existingUser = await prisma.user.findUnique({
-        where: { email }
-    });
-
-    if (existingUser) {
-        return res.status(400).json({ error: 'Email already in use' });
-    }
-
-    const user = await prisma.user.create({
-        data: { name, email, password }
-    });
-
-    res.status(201).json(user);
-});
-
 export const getUserById = asyncHandler(async (req, res) => {
     const { id } = req.params;
 
