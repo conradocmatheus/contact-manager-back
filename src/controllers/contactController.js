@@ -1,13 +1,6 @@
 import prisma from "../../prisma/prismaClient.js";
 import { asyncHandler } from "../utils/middlewares/asyncHandler.js";
 
-export const getAllContacts = asyncHandler(async (req, res) => {
-    const contacts = await prisma.contact.findMany({
-        where: { userId: req.user.id }
-    });
-    res.status(200).json(contacts);
-});
-
 export const getAllContactsByUserId = asyncHandler(async (req, res) => {
     const userId = req.user.id;
     const page = parseInt(req.query.page) || 1;
@@ -19,8 +12,8 @@ export const getAllContactsByUserId = asyncHandler(async (req, res) => {
         userId: userId,
         ...(searchTerm ? {
             OR: [
-                { name: { contains: searchTerm, mode: 'insensitive'} },
-                { email: { contains: searchTerm, mode: 'insensitive' } }
+                { name: { contains: searchTerm.toLowerCase() } },
+                { email: { contains: searchTerm.toLowerCase() } }
             ]
         } : {})
     };
@@ -65,11 +58,8 @@ export const createContact = asyncHandler(async (req, res) => {
 export const getContactById = asyncHandler(async (req, res) => {
     const { id } = req.params;
 
-    const contact = await prisma.contact.findFirst({
-        where: {
-            id: parseInt(id),
-            userId: req.user.id
-        }
+    const contact = await prisma.contact.findUnique({
+        where: { id: parseInt(id) }
     });
 
     if (!contact) {
@@ -83,11 +73,8 @@ export const updateContact = asyncHandler(async (req, res) => {
     const { id } = req.params;
     const { name, email, phone } = req.body;
 
-    const contact = await prisma.contact.findFirst({
-        where: {
-            id: parseInt(id),
-            userId: req.user.id
-        }
+    const contact = await prisma.contact.findUnique({
+        where: { id: parseInt(id) }
     });
 
     if (!contact) {
@@ -95,10 +82,7 @@ export const updateContact = asyncHandler(async (req, res) => {
     }
 
     const updatedContact = await prisma.contact.update({
-        where: {
-            id: parseInt(id),
-            userId: req.user.id
-        },
+        where: { id: parseInt(id) },
         data: { name, email, phone }
     });
 
@@ -108,11 +92,8 @@ export const updateContact = asyncHandler(async (req, res) => {
 export const deleteContact = asyncHandler(async (req, res) => {
     const { id } = req.params;
 
-    const contact = await prisma.contact.findFirst({
-        where: {
-            id: parseInt(id),
-            userId: req.user.id
-        }
+    const contact = await prisma.contact.findUnique({
+        where: { id: parseInt(id) }
     });
 
     if (!contact) {
@@ -120,20 +101,15 @@ export const deleteContact = asyncHandler(async (req, res) => {
     }
 
     await prisma.contact.delete({
-        where: {
-            id: parseInt(id),
-            userId: req.user.id
-        }
+        where: { id: parseInt(id) }
     });
 
     res.status(204).send();
 });
 
 export const deleteAllContactsByUserId = asyncHandler(async (req, res) => {
-    const userId = req.user.id;
-
     const deletedContacts = await prisma.contact.deleteMany({
-        where: { userId }
+        where: { userId: req.params.userId },
     });
 
     if (deletedContacts.count === 0) {
