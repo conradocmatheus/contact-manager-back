@@ -5,3 +5,5 @@ npm-debug.log*
 .gitignore
 README.md
 postman_collection.json
+test
+coverage
