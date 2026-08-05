@@ -26,7 +26,7 @@ Use the same URL-safe PostgreSQL password in `POSTGRES_PASSWORD` and
 
 ```bash
 docker compose --env-file .env.production -f compose.production.yml ps
-curl http://localhost/api/health
+curl http://YOUR_ELASTIC_IP/api/health
 ```
 
 The PostgreSQL data is stored in the named volume `contact-manager_postgres_data`.
