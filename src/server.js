@@ -63,16 +63,11 @@ app.get('/validate-phone', validatePhoneQuery, async (req, res) => {
                 },
                 timeout: 10000,
             },
-<<<<<<< HEAD
-        });
-
-if (response.data.success === false) {
-    throw new Error(response.data.error?.info || 'Erro na API NumVerify');
-}
-
-=======
         );
->>>>>>> dev
+
+        if (response.data.success === false) {
+            throw new Error(response.data.error?.info || 'Erro na API NumVerify');
+        }
 res.json(response.data);
     } catch (error) {
     console.error('Erro ao validar o número:', error.message || error);
