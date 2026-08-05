@@ -20,7 +20,7 @@ services:
       - app
 
   api:
-    image: ${BACKEND_IMAGE:-contact-manager-back:dev}
+    image: ${BACKEND_IMAGE:-ghcr.io/conradocmatheus/contact-manager-back:dev}
     restart: unless-stopped
     environment:
       NODE_ENV: production
@@ -38,7 +38,7 @@ services:
       - app
 
   frontend:
-    image: ${FRONTEND_IMAGE:-contact-manager-front:dev}
+    image: ${FRONTEND_IMAGE:-ghcr.io/conradocmatheus/contact-manager-front:dev}
     restart: unless-stopped
     environment:
       SITE_ADDRESS: ${SITE_ADDRESS:-http://localhost}
