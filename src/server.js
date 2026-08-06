@@ -62,9 +62,14 @@ app.get('/validate-phone', async (req, res) => {
                 timeout: 10000,
             },
         );
+        
+        if (response.data.success === false) {
+            throw new Error(response.data.error?.info || 'Erro na API NumVerify');
+        }
+
         res.json(response.data);
     } catch (error) {
-        console.error('Erro ao validar o número:', error);
+        console.error('Erro ao validar o número:', error.message || error);
         res.status(500).send('Erro ao validar o número');
     }
 });
