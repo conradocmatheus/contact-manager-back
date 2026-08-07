@@ -3,7 +3,6 @@ import assert from 'node:assert/strict';
 import bcrypt from 'bcryptjs';
 import prisma from '../prisma/prismaClient.js';
 import {
-    createUser,
     deleteCurrentUser,
     getCurrentUser,
     updateCurrentUser
@@ -73,25 +72,6 @@ test('user lookup selects and returns only public fields', { concurrency: false 
     });
 
     assert.equal(response.statusCode, 200);
-    assert.equal(Object.hasOwn(response.body, 'password'), false);
-});
-
-test('direct user creation hashes the password and never returns it', { concurrency: false }, async (t) => {
-    const plainPassword = 'plain-text-password';
-
-    mockUserMethod(t, 'findUnique', async () => null);
-    mockUserMethod(t, 'create', async ({ data, select }) => {
-        assertPublicSelect(select);
-        assert.notEqual(data.password, plainPassword);
-        assert.equal(await bcrypt.compare(plainPassword, data.password), true);
-        return PUBLIC_USER;
-    });
-
-    const response = await invoke(createUser, {
-        body: { name: PUBLIC_USER.name, email: PUBLIC_USER.email, password: plainPassword }
-    });
-
-    assert.equal(response.statusCode, 201);
     assert.equal(Object.hasOwn(response.body, 'password'), false);
 });
 

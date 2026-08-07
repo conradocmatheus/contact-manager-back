@@ -3,7 +3,6 @@ import {
     createContact, deleteAllContactsByUser,
     deleteContact,
     getAllContacts,
-    getAllContactsByUserId,
     getContactById,
     updateContact
 } from '../controllers/contactController.js';
@@ -12,8 +11,7 @@ import { validateContact, validateIdParam, validatePagination } from '../utils/m
 
 const router = new Router();
 
-router.get('/', authMiddleware, getAllContacts);
-router.get('/by-user/:id', authMiddleware, validatePagination, getAllContactsByUserId);
+router.get('/', authMiddleware, validatePagination, getAllContacts);
 router.post('/', authMiddleware, validateContact, createContact);
 router.get('/:id', authMiddleware, validateIdParam, getContactById);
 router.put('/:id', authMiddleware, validateIdParam, validateContact, updateContact);
