@@ -7,7 +7,6 @@ import {
     deleteAllContactsByUser,
     deleteContact,
     getAllContacts,
-    getAllContactsByUserId,
     getContactById,
     updateContact
 } from '../src/controllers/contactController.js';
@@ -41,36 +40,30 @@ const mockPrismaMethod = (t, methodName, implementation) => {
     });
 };
 
-test('lists only contacts owned by the authenticated user', async (t) => {
-    mockPrismaMethod(t, 'findMany', async (query) => {
-        assert.deepEqual(query, { where: { userId: 7 } });
-        return [];
-    });
-
-    const res = await invoke(getAllContacts, { user: { id: 7 } });
-
-    assert.equal(res.statusCode, 200);
-    assert.deepEqual(res.body, []);
-});
-
-test('ignores the URL user ID when listing paginated contacts', async (t) => {
+test('lists paginated contacts only for the authenticated user', async (t) => {
     const expectedWhere = { userId: 7 };
     mockPrismaMethod(t, 'count', async ({ where }) => {
         assert.deepEqual(where, expectedWhere);
         return 0;
     });
-    mockPrismaMethod(t, 'findMany', async ({ where }) => {
+    mockPrismaMethod(t, 'findMany', async ({ where, skip, take, orderBy }) => {
         assert.deepEqual(where, expectedWhere);
+        assert.equal(skip, 0);
+        assert.equal(take, 10);
+        assert.deepEqual(orderBy, { name: 'asc' });
         return [];
     });
 
-    const res = await invoke(getAllContactsByUserId, {
+    const res = await invoke(getAllContacts, {
         user: { id: 7 },
-        params: { id: '99' },
         query: {}
     });
 
     assert.equal(res.statusCode, 200);
+    assert.deepEqual(res.body, {
+        contacts: [],
+        pagination: { total: 0, page: 1, limit: 10, totalPages: 0 }
+    });
 });
 
 test('assigns a new contact to the authenticated user', async (t) => {
