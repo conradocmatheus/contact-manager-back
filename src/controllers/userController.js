@@ -1,6 +1,5 @@
 import prisma from "../../prisma/prismaClient.js";
 import { asyncHandler } from "../utils/middlewares/asyncHandler.js";
-import { hashPassword } from "../utils/password.js";
 
 const publicUserSelect = {
     id: true,
@@ -9,27 +8,6 @@ const publicUserSelect = {
     createdAt: true,
     updatedAt: true
 };
-
-export const createUser = asyncHandler(async (req, res) => {
-    const { name, email, password } = req.body;
-
-    const existingUser = await prisma.user.findUnique({
-        where: { email }
-    });
-
-    if (existingUser) {
-        return res.status(400).json({ error: 'Email already in use' });
-    }
-
-    const hashedPassword = await hashPassword(password);
-
-    const user = await prisma.user.create({
-        data: { name, email, password: hashedPassword },
-        select: publicUserSelect
-    });
-
-    res.status(201).json(user);
-});
 
 export const getCurrentUser = asyncHandler(async (req, res) => {
     const user = await prisma.user.findUnique({

@@ -12,7 +12,6 @@ const routeContracts = (router) => router.stack
 
 test('profile routes identify the current user without URL parameters', () => {
     assert.deepEqual(routeContracts(userRoutes), [
-        { path: '/', methods: ['post'] },
         { path: '/me', methods: ['get'] },
         { path: '/me', methods: ['put'] },
         { path: '/me', methods: ['delete'] }
