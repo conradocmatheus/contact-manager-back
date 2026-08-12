@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
+lock_file="${DEPLOY_LOCK_FILE:-/tmp/contact-manager-deploy.lock}"
+exec 9>"${lock_file}"
+if ! flock -w 180 9; then
+  echo "Another Contact Manager deployment is still running." >&2
+  exit 1
+fi
+
 DEPLOY_DIR="${DEPLOY_DIR:-/home/ubuntu/contact-manager/contact-manager-back}"
 ENV_FILE="${ENV_FILE:-${DEPLOY_DIR}/.env.production}"
 COMPOSE_FILE="${COMPOSE_FILE:-${DEPLOY_DIR}/compose.production.yml}"

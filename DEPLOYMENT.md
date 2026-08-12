@@ -21,9 +21,21 @@ Before starting the stack, replace every placeholder in `.env.production`.
 Use the same URL-safe PostgreSQL password in `POSTGRES_PASSWORD` and
 `DATABASE_URL`. Never commit `.env.production`.
 
-## Automatic updates
+## Deploy triggered by GitHub Actions
 
-Install the systemd timer after the first deployment:
+The CI/CD workflows publish a validated image and, only for `master`, connect to
+the EC2 host to execute `deploy/update-containers.sh`. The script pulls both
+application images, recreates only the API and frontend, and validates the API
+health endpoint. See `PIPELINE_CICD.md` for the required GitHub Environment
+variables and secrets.
+
+The deployment script uses a file lock, so frontend and backend workflows cannot
+update the Compose stack concurrently.
+
+## Timer fallback
+
+The systemd timer can be kept as a temporary fallback before the direct pipeline
+deploy is configured. Install it with:
 
 ```bash
 sudo cp deploy/contact-manager-update.service /etc/systemd/system/
@@ -43,9 +55,15 @@ systemctl status contact-manager-update.timer
 journalctl -u contact-manager-update.service -n 100 --no-pager
 ```
 
-To promote production later, change both image tags in `.env.production` from
-`:dev` to `:master` and run the update service once. SHA tags such as
+Production must use `:master` for both images. SHA tags such as
 `:sha-1a2b3c4` can be used for a pinned deployment or rollback.
+
+Disable the timer after the GitHub Actions deploy is verified, so every
+production update remains visible in the Actions history:
+
+```bash
+sudo systemctl disable --now contact-manager-update.timer
+```
 
 ## Verification
 
