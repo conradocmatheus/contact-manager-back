@@ -7,6 +7,12 @@ COPY prisma ./prisma
 
 RUN npm ci --omit=dev
 
+# npm is not required at runtime. Removing it reduces the final attack surface;
+# Prisma and Node are invoked directly by the container command below.
+RUN rm -rf /usr/local/lib/node_modules/npm \
+    /usr/local/bin/npm \
+    /usr/local/bin/npx
+
 COPY src ./src
 
 ENV NODE_ENV=production
@@ -18,4 +24,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
 
 USER node
 
-CMD ["sh", "-c", "npm run prisma:migrate:deploy && exec node src/server.js"]
+CMD ["sh", "-c", "./node_modules/.bin/prisma migrate deploy && exec node src/server.js"]
