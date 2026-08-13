@@ -53,6 +53,56 @@ test('validateSignup fails with invalid email and short password', () => {
     assert.equal(res.body.details.length, 3);
 });
 
+test('validateLogin accepts credentials and rejects invalid input', () => {
+    const validRes = mockResponse();
+    const validNext = mockNext();
+    validateLogin(
+        { body: { email: 'john@example.com', password: 'password123' } },
+        validRes,
+        validNext.next
+    );
+    assert.equal(validNext.wasCalled(), true);
+
+    const invalidRes = mockResponse();
+    validateLogin({ body: { email: 'invalid', password: '' } }, invalidRes, () => {});
+    assert.equal(invalidRes.statusCode, 400);
+    assert.equal(invalidRes.body.details.length, 2);
+});
+
+test('validateUpdatePassword accepts valid values and rejects short passwords', () => {
+    const validNext = mockNext();
+    validateUpdatePassword(
+        { body: { currentPassword: 'old-password', newPassword: 'new-password' } },
+        mockResponse(),
+        validNext.next
+    );
+    assert.equal(validNext.wasCalled(), true);
+
+    const invalidRes = mockResponse();
+    validateUpdatePassword(
+        { body: { currentPassword: '', newPassword: '123' } },
+        invalidRes,
+        () => {}
+    );
+    assert.equal(invalidRes.statusCode, 400);
+    assert.equal(invalidRes.body.details.length, 2);
+});
+
+test('validateUpdateUser accepts optional fields and rejects invalid values', () => {
+    const validNext = mockNext();
+    validateUpdateUser(
+        { body: { name: 'Jane', email: 'jane@example.com' } },
+        mockResponse(),
+        validNext.next
+    );
+    assert.equal(validNext.wasCalled(), true);
+
+    const invalidRes = mockResponse();
+    validateUpdateUser({ body: { name: 'J', email: 'invalid' } }, invalidRes, () => {});
+    assert.equal(invalidRes.statusCode, 400);
+    assert.equal(invalidRes.body.details.length, 2);
+});
+
 test('validateContact passes with valid phone and email', () => {
     const req = { body: { name: 'Jane', email: 'jane@example.com', phone: '+1234567890' } };
     const res = mockResponse();
@@ -106,4 +156,15 @@ test('validatePagination validates page and limit', () => {
     assert.equal(nextObj2.wasCalled(), false);
     assert.equal(res2.statusCode, 400);
     assert.equal(res2.body.details.length, 2);
+});
+
+test('validatePhoneQuery accepts valid numbers and rejects invalid numbers', () => {
+    const validNext = mockNext();
+    validatePhoneQuery({ query: { number: '+5511999999999' } }, mockResponse(), validNext.next);
+    assert.equal(validNext.wasCalled(), true);
+
+    const invalidRes = mockResponse();
+    validatePhoneQuery({ query: { number: 'invalid' } }, invalidRes, () => {});
+    assert.equal(invalidRes.statusCode, 400);
+    assert.deepEqual(invalidRes.body.details, ['Invalid phone number in query']);
 });
