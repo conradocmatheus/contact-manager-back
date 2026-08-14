@@ -29,6 +29,12 @@ application images, recreates only the API and frontend, and validates the API
 health endpoint. See `PIPELINE_CICD.md` for the required GitHub Environment
 variables and secrets.
 
+Before SSH, the production job assumes a least-privilege AWS role through
+GitHub OIDC and authorizes only the current runner IPv4 (`/32`) in the EC2
+Security Group. The workflow stores the returned security-group rule ID and
+revokes that exact rule in an `always()` cleanup step. Keep the normal operator
+SSH rule restricted to `My IP`; do not expose port 22 to `0.0.0.0/0`.
+
 The deployment script uses a file lock, so frontend and backend workflows cannot
 update the Compose stack concurrently.
 
