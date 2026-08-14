@@ -178,21 +178,91 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment: production
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
       - name: Validate deployment configuration
         env:
+          AWS_ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}
+          AWS_REGION: ${{ vars.AWS_REGION }}
+          EC2_SECURITY_GROUP_ID: ${{ vars.EC2_SECURITY_GROUP_ID }}
           EC2_HOST: ${{ vars.EC2_HOST }}
           EC2_USER: ${{ vars.EC2_USER }}
           PRODUCTION_URL: ${{ vars.PRODUCTION_URL }}
           EC2_SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
           EC2_KNOWN_HOSTS: ${{ secrets.EC2_KNOWN_HOSTS }}
         run: |
+          : "${AWS_ROLE_ARN:?Configure the AWS_ROLE_ARN production variable}"
+          : "${AWS_REGION:?Configure the AWS_REGION production variable}"
+          : "${EC2_SECURITY_GROUP_ID:?Configure the EC2_SECURITY_GROUP_ID production variable}"
           : "${EC2_HOST:?Configure the EC2_HOST production variable}"
           : "${EC2_USER:?Configure the EC2_USER production variable}"
           : "${PRODUCTION_URL:?Configure the PRODUCTION_URL production variable}"
           : "${EC2_SSH_PRIVATE_KEY:?Configure the EC2_SSH_PRIVATE_KEY production secret}"
           : "${EC2_KNOWN_HOSTS:?Configure the EC2_KNOWN_HOSTS production secret}"
+
+      - name: Configure temporary AWS credentials with OIDC
+        uses: aws-actions/configure-aws-credentials@v6.2.3
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+          allowed-account-ids: "664106870581"
+          role-session-name: contact-manager-${{ github.run_id }}
+
+      - name: Discover runner public IPv4
+        id: runner-ip
+        run: |
+          set -euo pipefail
+          runner_ip="$(curl -fsS --retry 3 --retry-delay 2 https://checkip.amazonaws.com | tr -d '[:space:]')"
+          if [[ ! "$runner_ip" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
+            echo "Could not determine a valid runner IPv4 address" >&2
+            exit 1
+          fi
+          echo "cidr=${runner_ip}/32" >> "$GITHUB_OUTPUT"
+
+      - name: Authorize temporary runner SSH access
+        id: authorize-ssh
+        env:
+          SECURITY_GROUP_ID: ${{ vars.EC2_SECURITY_GROUP_ID }}
+          RUNNER_CIDR: ${{ steps.runner-ip.outputs.cidr }}
+        run: |
+          set -euo pipefail
+          description="github-actions-${GITHUB_REPOSITORY##*/}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          ip_permissions="$(jq -cn \
+            --arg cidr "$RUNNER_CIDR" \
+            --arg description "$description" \
+            '[{IpProtocol:"tcp",FromPort:22,ToPort:22,IpRanges:[{CidrIp:$cidr,Description:$description}]}]')"
+
+          set +e
+          response="$(aws ec2 authorize-security-group-ingress \
+            --group-id "$SECURITY_GROUP_ID" \
+            --ip-permissions "$ip_permissions" \
+            --output json 2>&1)"
+          status=$?
+          set -e
+
+          if (( status != 0 )); then
+            if grep -q 'InvalidPermission.Duplicate' <<<"$response"; then
+              echo "SSH access already exists for this runner CIDR; this run will not remove it."
+              exit 0
+            fi
+            printf '%s\n' "$response" >&2
+            exit "$status"
+          fi
+
+          rule_id="$(jq -r '.SecurityGroupRules[0].SecurityGroupRuleId // empty' <<<"$response")"
+          if [[ ! "$rule_id" =~ ^sgr-[0-9a-f]+$ ]]; then
+            aws ec2 revoke-security-group-ingress \
+              --group-id "$SECURITY_GROUP_ID" \
+              --protocol tcp \
+              --port 22 \
+              --cidr "$RUNNER_CIDR" || true
+            echo "AWS created the SSH rule but did not return its rule ID" >&2
+            exit 1
+          fi
+          echo "rule_id=$rule_id" >> "$GITHUB_OUTPUT"
 
       - name: Configure verified SSH access
         env:
@@ -235,3 +305,13 @@ jobs:
       - name: Remove temporary SSH key
         if: always()
         run: rm -f ~/.ssh/contact-manager
+
+      - name: Revoke temporary runner SSH access
+        if: always() && steps.authorize-ssh.outputs.rule_id != ''
+        env:
+          SECURITY_GROUP_ID: ${{ vars.EC2_SECURITY_GROUP_ID }}
+          SECURITY_GROUP_RULE_ID: ${{ steps.authorize-ssh.outputs.rule_id }}
+        run: |
+          aws ec2 revoke-security-group-ingress \
+            --group-id "$SECURITY_GROUP_ID" \
+            --security-group-rule-ids "$SECURITY_GROUP_RULE_ID"

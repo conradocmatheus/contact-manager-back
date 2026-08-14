@@ -17,8 +17,11 @@ flowchart LR
     S --> D["Docker build"]
     D --> V["Trivy scan"]
     V --> P["Publicar imagem no GHCR"]
-    P -->|"somente master"| E["Atualizar EC2"]
+    P -->|"somente master"| O["OIDC AWS"]
+    O --> R["Liberar IP do runner /32"]
+    R --> E["Atualizar EC2"]
     E --> H["Health check publico"]
+    H --> C["Remover regra SSH temporaria"]
 ```
 
 No backend nao existe uma etapa de compilacao, pois a aplicacao usa JavaScript
@@ -63,9 +66,14 @@ feat/* ou fix/* -> Pull Request -> dev -> Pull Request -> master -> producao
 10. **Trivy:** gera relatorio completo e bloqueia vulnerabilidades altas ou
     criticas com correcao disponivel.
 11. **Publicacao:** somente pushes e execucoes manuais publicam imagens no GHCR.
-12. **Deploy:** somente `master` conecta na EC2, executa o atualizador de
+12. **Acesso AWS:** somente o job de producao recebe um token OIDC temporario.
+    A role autoriza apenas criar e remover regras SSH no Security Group da EC2.
+13. **SSH temporario:** o runner descobre seu IPv4, cria uma regra `/32`, salva
+    o ID `sgr-*` retornado pela AWS e remove exatamente essa regra com
+    `if: always()`, inclusive quando o deploy falha.
+14. **Deploy:** somente `master` conecta na EC2, executa o atualizador de
     containers e espera o health check interno.
-13. **Verificacao externa:** o runner consulta `PRODUCTION_URL/api/health`. Sem
+15. **Verificacao externa:** o runner consulta `PRODUCTION_URL/api/health`. Sem
     `{"status":"ok"}`, o deploy e marcado como falha.
 
 ## Limites iniciais de cobertura
@@ -92,6 +100,9 @@ Cadastre as seguintes **Environment variables**:
 | `EC2_USER` | `ubuntu` | usuario SSH |
 | `PRODUCTION_URL` | `https://app.exemplo.com` | URL usada no health check externo |
 | `EC2_DEPLOY_COMMAND` | opcional | sobrescreve o comando padrao caso o repositorio esteja em outro caminho |
+| `AWS_ROLE_ARN` | `arn:aws:iam::123456789012:role/ContactManagerDeployRole` | role assumida pelo GitHub via OIDC |
+| `AWS_REGION` | `sa-east-1` | regiao da instancia e do Security Group |
+| `EC2_SECURITY_GROUP_ID` | `sg-0123456789abcdef0` | grupo que recebe a regra SSH temporaria |
 
 Cadastre os seguintes **Environment secrets**:
 
@@ -113,10 +124,15 @@ fingerprint da EC2 e depois execute localmente:
 ssh-keyscan -H IP_OU_HOST_DA_EC2
 ```
 
-Nao use `StrictHostKeyChecking=no`. A porta 22 do Security Group precisa aceitar
-os runners usados pela pipeline. Como os IPs dos runners hospedados pelo GitHub
-mudam, uma melhoria futura e substituir SSH por AWS Systems Manager com OIDC,
-eliminando a entrada SSH publica.
+Nao use `StrictHostKeyChecking=no` e nao deixe a porta 22 aberta para
+`0.0.0.0/0`. Os IPs dos runners hospedados pelo GitHub mudam, por isso cada
+execucao autoriza somente o IPv4 atual (`/32`) e revoga a regra pelo ID retornado
+pela AWS. A role OIDC nao possui chaves permanentes e fica limitada aos dois
+repositorios, ao Environment `production` e ao Security Group da aplicacao.
+
+Se a EC2 estiver desligada, a publicacao da imagem continua concluida, o SSH
+falha e a regra temporaria ainda e removida. Depois de ligar a instancia, use
+**Re-run failed jobs** ou execute manualmente o workflow na branch `master`.
 
 Depois que o deploy direto estiver comprovado, o timer antigo pode ser
 desabilitado para evitar atualizacoes fora do historico do GitHub Actions:
